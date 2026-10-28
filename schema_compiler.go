@@ -93,17 +93,13 @@ func (r *Grammar) schemaColumnType(column driver.ColumnDefinition) (string, erro
 	case "geometry", "geography":
 		return column.GetType(), nil
 	case "enum":
-		return "nvarchar(255) check (" + r.ddlWrap().Value(column.GetName()) + " in (" + strings.Join(r.wrap.Quotes(toStrings(column.GetAllowed())), ", ") + "))", nil
+		if len(column.GetAllowed()) == 0 {
+			return "", errors.SchemaEnumValuesRequired.Args(column.GetName())
+		}
+		return "nvarchar(255)", nil
 	default:
 		return schema.ColumnType(r, column), nil
 	}
-}
-func toStrings(values []any) []string {
-	out := make([]string, len(values))
-	for i, v := range values {
-		out[i] = fmt.Sprint(v)
-	}
-	return out
 }
 func (r *Grammar) schemaColumn(blueprint driver.Blueprint, column driver.ColumnDefinition) (string, error) {
 	kind, err := r.schemaColumnType(column)
@@ -113,8 +109,15 @@ func (r *Grammar) schemaColumn(blueprint driver.Blueprint, column driver.ColumnD
 	options := describeColumn(column)
 	definition := r.ddlWrap().Value(column.GetName()) + " " + kind
 	if column.GetType() == "computed" || options.VirtualAs != nil || options.StoredAs != nil {
+		notNull := options.Nullable != nil && !*options.Nullable
+		if notNull && (!options.Persisted && options.StoredAs == nil || column.IsChange()) {
+			return "", errors.SchemaComputedNotNullRequiresPersisted
+		}
 		if options.Persisted || options.StoredAs != nil {
 			definition += " persisted"
+			if notNull {
+				definition += " not null"
+			}
 		}
 		return definition, nil
 	}
@@ -127,9 +130,15 @@ func (r *Grammar) schemaColumn(blueprint driver.Blueprint, column driver.ColumnD
 		increment = strings.Replace(increment, " identity", " identity("+strconv.FormatUint(*options.StartingValue, 10)+",1)", 1)
 	}
 	definition += increment
+	if column.GetType() == "enum" && !column.IsChange() {
+		definition += " constraint " + r.ddlWrap().Value(r.enumName(blueprint, column.GetName())) + " check (" + r.enumCheck(column) + ")"
+	}
 	return definition, nil
 }
 func (r *Grammar) CompileSchemaCommand(blueprint driver.Blueprint, command *driver.Command) ([]driver.SchemaStatement, bool, error) {
+	if statements, ok := r.enumChanges[command]; ok {
+		return statements, true, nil
+	}
 	wrap := r.ddlWrap()
 	table := r.ddlTable(blueprint)
 	var statement string
@@ -145,8 +154,14 @@ func (r *Grammar) CompileSchemaCommand(blueprint driver.Blueprint, command *driv
 		}
 		statement = "create table " + table + " (" + strings.Join(columns, ", ") + ")"
 	case schema.CommandAdd:
+		if command.Column.IsChange() && command.Column.GetType() == "enum" && r.enumChanges == nil {
+			return nil, true, errors.SchemaEnumCatalogRequired.Args(command.Column.GetName())
+		}
 		options := describeColumn(command.Column)
 		if command.Column.IsChange() && command.Column.GetType() == "computed" {
+			if options.Nullable != nil && !*options.Nullable {
+				return nil, true, errors.SchemaComputedNotNullRequiresPersisted
+			}
 			action := "drop"
 			if options.Persisted {
 				action = "add"
@@ -203,7 +218,7 @@ func (r *Grammar) CompileSchemaCommand(blueprint driver.Blueprint, command *driv
 		}
 	case schema.CommandDefault:
 		if command.Column.IsChange() && command.Column.GetDefault() != nil {
-			statement = "alter table " + table + " add default " + schema.ColumnDefaultValue(command.Column.GetDefault()) + " for " + wrap.Value(command.Column.GetName())
+			statement = "alter table " + table + " add default " + schemaDefaultValue(command.Column.GetDefault()) + " for " + wrap.Value(command.Column.GetName())
 		}
 	case schema.CommandComment:
 		comment := describeColumn(command.Column).Comment
@@ -251,9 +266,14 @@ func (r *Grammar) commentStatement(blueprint driver.Blueprint, column, comment s
 func (r *Grammar) CompileSchemaStartingValues(driver.Blueprint) ([]driver.SchemaStatement, error) {
 	return nil, nil
 }
-func (r *Grammar) SchemaExecutionPolicy(driver.Blueprint) driver.SchemaExecutionPolicy {
-	return driver.SchemaExecutionPolicy{Transactional: true}
-}
-func (r *Grammar) CompileSchemaBlueprint(driver.Blueprint, driver.SchemaCatalog) ([]driver.SchemaStatement, bool, error) {
-	return nil, false, nil
+func (r *Grammar) SchemaExecutionPolicy(blueprint driver.Blueprint) driver.SchemaExecutionPolicy {
+	policy := driver.SchemaExecutionPolicy{Transactional: true}
+	if blueprint != nil {
+		for _, command := range blueprint.GetCommands() {
+			if command.Name == schema.CommandAdd && command.Column.IsChange() && command.Column.GetType() == "enum" {
+				policy.NestedTransaction = true
+			}
+		}
+	}
+	return policy
 }

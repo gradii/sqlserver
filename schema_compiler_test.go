@@ -19,7 +19,7 @@ func TestSchemaCompilerKeepsOrdinaryAndAdvancedColumns(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, statements)
 	assert.Contains(t, statements[0].SQL, "[id] bigint not null identity(21,1) primary key")
-	assert.Contains(t, statements[0].SQL, "[name] nvarchar(40) collate Latin1_General_100_CI_AS not null default 'hello'")
+	assert.Contains(t, statements[0].SQL, "[name] nvarchar(40) collate Latin1_General_100_CI_AS not null default N'hello'")
 	assert.Contains(t, statements[0].SQL, "[payload] binary(16) not null")
 	assert.Contains(t, statements[0].SQL, "[twice] as ([id] * 2) persisted")
 	comments := 0
@@ -39,5 +39,5 @@ func TestSchemaCompilerChangeRemovesDefaultsBeforeAlter(t *testing.T) {
 	assert.Contains(t, statements[0].SQL, "quotename(object_name(c.default_object_id))")
 	assert.Equal(t, []any{"[items]", "name"}, statements[0].Bindings)
 	assert.Equal(t, "alter table [items] alter column [name] nvarchar(90) null", statements[1].SQL)
-	assert.Equal(t, "alter table [items] add default 'new' for [name]", statements[2].SQL)
+	assert.Equal(t, "alter table [items] add default N'new' for [name]", statements[2].SQL)
 }

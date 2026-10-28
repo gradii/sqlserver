@@ -1,6 +1,8 @@
 package sqlserver
 
 import (
+	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/gradii/framework/database/query/core"
@@ -61,6 +63,9 @@ func (g *QueryGrammar) compileJsonUpdateGroup(column string, group sqlServerJson
 		if core.IsArrayValue(selector.Value) {
 			// JSON_QUERY prevents SQL Server from storing the encoded document as a quoted string.
 			value = g.CompileJsonValueCast(value)
+		} else if number, ok := selector.Value.(json.Number); ok {
+			_, typ := sqlServerJSONNumber(number)
+			value = "cast(" + value + " as " + typ + ")"
 		}
 		expression = "json_modify(" + expression + path + ", " + value + ")"
 	}
@@ -69,3 +74,52 @@ func (g *QueryGrammar) compileJsonUpdateGroup(column string, group sqlServerJson
 }
 
 type sqlServerJsonUpdate []core.UpdateValue
+
+// JSON numbers decoded with UseNumber must not become quoted strings in JSON_MODIFY. DECIMAL
+// preserves exact values that fit SQL Server's 38 digits; other magnitudes use its floating type.
+// The cast type is derived from bounded integers, and the number itself remains a SQL parameter.
+func sqlServerJSONNumber(number json.Number) (string, string) {
+	text := string(number)
+	coefficient, exponentText, hasExponent := strings.Cut(strings.ToLower(text), "e")
+	exponent := 0
+	if hasExponent {
+		var err error
+		exponent, err = strconv.Atoi(exponentText)
+		if err != nil || exponent < -38 || exponent > 38 {
+			return text, "float"
+		}
+	}
+	negative := strings.HasPrefix(coefficient, "-")
+	coefficient = strings.TrimPrefix(coefficient, "-")
+	integer, fraction, _ := strings.Cut(coefficient, ".")
+	digits := strings.TrimLeft(integer+fraction, "0")
+	if digits == "" {
+		return "0", "decimal(38, 0)"
+	}
+	scale := len(fraction) - exponent
+	for scale > 0 && strings.HasSuffix(digits, "0") {
+		digits = strings.TrimSuffix(digits, "0")
+		scale--
+	}
+	if scale < 0 {
+		if len(digits)-scale > 38 {
+			return text, "float"
+		}
+		digits += strings.Repeat("0", -scale)
+		scale = 0
+	}
+	if scale > 38 || len(digits) > 38 {
+		return text, "float"
+	}
+	if scale > 0 {
+		if len(digits) <= scale {
+			digits = strings.Repeat("0", scale-len(digits)+1) + digits
+		}
+		split := len(digits) - scale
+		digits = digits[:split] + "." + digits[split:]
+	}
+	if negative {
+		digits = "-" + digits
+	}
+	return digits, "decimal(38, " + strconv.Itoa(scale) + ")"
+}

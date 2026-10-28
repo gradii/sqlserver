@@ -1,6 +1,7 @@
 package sqlserver
 
 import (
+	"encoding/json"
 	"regexp"
 	"strconv"
 	"strings"
@@ -237,6 +238,8 @@ func (g *QueryGrammar) PrepareBindingsForUpdate(bindings map[string][]any, value
 				binding := selector.Value
 				if core.IsArrayValue(binding) {
 					binding = grammars.EncodeJSON(binding)
+				} else if number, ok := binding.(json.Number); ok {
+					binding, _ = sqlServerJSONNumber(number)
 				}
 				out = g.AppendUpdateValueBinding(out, binding)
 			}
@@ -369,21 +372,8 @@ func (g *QueryGrammar) CompileJsonValueCast(value string) string {
 
 // PrepareBindingForJsonContains mirrors SqlServerGrammar::prepareBindingForJsonContains().
 func (g *QueryGrammar) PrepareBindingForJsonContains(value any) any {
-	if core.IsArrayValue(value) {
-		values := core.ToAnySlice(value)
-		for i, item := range values {
-			values[i] = g.PrepareBindingForJsonContains(item)
-		}
-		return values
-	}
-	if b, ok := value.(bool); ok {
-		if b {
-			return "true"
-		}
-		return "false"
-	}
-
-	return value
+	_, binding, _ := g.PrepareJsonContains(value)
+	return binding
 }
 
 // CompileRowNumber mirrors SqlServerGrammar::compileRowNumber(): an order by is required.

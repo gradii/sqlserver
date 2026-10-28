@@ -43,7 +43,7 @@ func (s *GrammarSuite) TestCompileAdd() {
 		Column: mockColumn,
 	})
 
-	s.Equal(`alter table "goravel_users" add "name" nvarchar(1) default 'goravel' not null`, sql)
+	s.Equal(`alter table "goravel_users" add "name" nvarchar(1) default N'goravel' not null`, sql)
 }
 
 func (s *GrammarSuite) TestCompileChange() {
@@ -194,7 +194,7 @@ func (s *GrammarSuite) TestCompileDefault() {
 		Column: mockColumnDefinition,
 	})
 
-	s.Equal(`alter table "goravel_users" add default 'default' for "id"`, sql)
+	s.Equal(`alter table "goravel_users" add default N'default' for "id"`, sql)
 }
 
 func (s *GrammarSuite) TestCompileDropColumn() {
@@ -582,7 +582,7 @@ func (s *GrammarSuite) TestGetColumns() {
 	mockColumn2.EXPECT().GetLength().Return(10).Once()
 	mockColumn2.EXPECT().IsChange().Return(false).Twice()
 
-	s.Equal([]string{`"id" int identity primary key not null`, `"name" nvarchar(10) default 'goravel' null`}, s.grammar.getColumns(mockBlueprint))
+	s.Equal([]string{`"id" int identity primary key not null`, `"name" nvarchar(10) default N'goravel' null`}, s.grammar.getColumns(mockBlueprint))
 }
 
 func (s *GrammarSuite) TestModifyDefault() {
@@ -609,7 +609,7 @@ func (s *GrammarSuite) TestModifyDefault() {
 				mockColumn.EXPECT().IsChange().Return(false).Once()
 				mockColumn.EXPECT().GetDefault().Return("goravel").Twice()
 			},
-			expectSql: " default 'goravel'",
+			expectSql: " default N'goravel'",
 		},
 	}
 

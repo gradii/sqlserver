@@ -21,6 +21,7 @@ import (
 var _ driver.Grammar = &Grammar{}
 
 type Grammar struct {
+	enumChanges       map[*driver.Command][]driver.SchemaStatement
 	versionResolver   func() (string, error)
 	attributeCommands []string
 	modifiers         []func(driver.Blueprint, driver.ColumnDefinition) string
@@ -99,7 +100,7 @@ func (r *Grammar) CompileDefault(blueprint driver.Blueprint, command *driver.Com
 	if command.Column.IsChange() && command.Column.GetDefault() != nil {
 		return fmt.Sprintf("alter table %s add default %s for %s",
 			r.wrap.Table(blueprint.GetTableName()),
-			schema.ColumnDefaultValue(command.Column.GetDefault()),
+			schemaDefaultValue(command.Column.GetDefault()),
 			r.wrap.Column(command.Column.GetName()),
 		)
 	}
@@ -505,7 +506,7 @@ func (r *Grammar) GetAttributeCommands() []string {
 
 func (r *Grammar) ModifyDefault(_ driver.Blueprint, column driver.ColumnDefinition) string {
 	if !column.IsChange() && column.GetDefault() != nil {
-		return fmt.Sprintf(" default %s", schema.ColumnDefaultValue(column.GetDefault()))
+		return fmt.Sprintf(" default %s", schemaDefaultValue(column.GetDefault()))
 	}
 
 	return ""
