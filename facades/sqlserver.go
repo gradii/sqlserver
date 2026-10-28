@@ -1,16 +1,15 @@
 package facades
 
 import (
-	"fmt"
+	"github.com/gradii/framework/contracts/database/driver"
 
-	"github.com/goravel/framework/contracts/database/driver"
-
-	"github.com/goravel/sqlserver"
+	"github.com/gradii/sqlserver"
+	drivererrors "github.com/gradii/sqlserver/errors"
 )
 
 func Sqlserver(connection string) (driver.Driver, error) {
 	if sqlserver.App == nil {
-		return nil, fmt.Errorf("please register sqlserver service provider")
+		return nil, drivererrors.ServiceProviderNotRegistered
 	}
 
 	instance, err := sqlserver.App.MakeWith(sqlserver.Binding, map[string]any{

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/goravel/framework/contracts/database/driver"
+	"github.com/gradii/framework/contracts/database/driver"
 )
 
 type ProcessorTestSuite struct {

@@ -1,7 +1,7 @@
 package contracts
 
 import (
-	contractsconfig "github.com/goravel/framework/contracts/config"
+	contractsconfig "github.com/gradii/framework/contracts/config"
 )
 
 type ConfigBuilder interface {
@@ -9,11 +9,6 @@ type ConfigBuilder interface {
 	Connection() string
 	Readers() []FullConfig
 	Writers() []FullConfig
-}
-
-// Replacer replacer interface like strings.Replacer
-type Replacer interface {
-	Replace(name string) string
 }
 
 // Config Used in config/database.go
@@ -28,13 +23,10 @@ type Config struct {
 
 // FullConfig Fill the default value for Config
 type FullConfig struct {
+	Charset  string
+	Timezone string
 	Config
-	Charset      string
-	Connection   string
-	Driver       string
-	NameReplacer Replacer
-	NoLowerCase  bool
-	Prefix       string
-	Singular     bool
-	Timezone     string
+	Connection string
+	Driver     string
+	Prefix     string
 }

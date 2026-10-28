@@ -3,8 +3,8 @@
 package contracts
 
 import (
-	config "github.com/goravel/framework/contracts/config"
-	contracts "github.com/goravel/sqlserver/contracts"
+	config "github.com/gradii/framework/contracts/config"
+	contracts "github.com/gradii/sqlserver/contracts"
 
 	mock "github.com/stretchr/testify/mock"
 )

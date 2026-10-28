@@ -1,8 +1,6 @@
 package sqlserver
 
-import "github.com/goravel/framework/errors"
+import drivererrors "github.com/gradii/sqlserver/errors"
 
-var (
-	FailedToGenerateDSN = errors.New("failed to generate DSN, please check the database configuration")
-	ConfigNotFound      = errors.New("not found database configuration")
-)
+var FailedToGenerateDSN = drivererrors.FailedToGenerateDSN
+var ConfigNotFound = drivererrors.ConfigNotFound

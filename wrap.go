@@ -1,8 +1,8 @@
 package sqlserver
 
 import (
-	"github.com/goravel/framework/database/schema"
-	"github.com/goravel/framework/support/collect"
+	"github.com/gradii/framework/database/schema"
+	"github.com/gradii/framework/support/collect"
 )
 
 type Wrap struct {

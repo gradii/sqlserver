@@ -9,18 +9,19 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/goravel/framework/contracts/database/driver"
-	databasedb "github.com/goravel/framework/database/db"
-	"github.com/goravel/framework/database/schema"
-	"github.com/goravel/framework/errors"
-	"github.com/goravel/framework/support/convert"
+	"github.com/gradii/framework/contracts/database/driver"
+	"github.com/gradii/framework/database/query/core"
+	"github.com/gradii/framework/database/query/grammars"
+	"github.com/gradii/framework/database/schema"
+	"github.com/gradii/framework/errors"
+	"github.com/gradii/framework/support/convert"
 	"github.com/spf13/cast"
-	"gorm.io/gorm/clause"
 )
 
 var _ driver.Grammar = &Grammar{}
 
 type Grammar struct {
+	versionResolver   func() (string, error)
 	attributeCommands []string
 	modifiers         []func(driver.Blueprint, driver.ColumnDefinition) string
 	prefix            string
@@ -303,23 +304,23 @@ func (r *Grammar) CompileJsonColumnsUpdate(values map[string]any) (map[string]an
 				if err != nil {
 					return nil, err
 				}
-				value = databasedb.Raw("json_query(?)", string(binding))
+				value = legacyRaw("json_query(?)", string(binding))
 			} else if kind == reflect.Bool {
 				var bit int
 				if val.Bool() {
 					bit = 1
 				}
-				value = databasedb.Raw(fmt.Sprintf("cast(%d as bit)", bit))
+				value = legacyRaw(fmt.Sprintf("cast(%d as bit)", bit))
 			} else if kind == reflect.Float64 || kind == reflect.Float32 {
-				value = databasedb.Raw(r.compileDecimalCastExpr(val.Float()))
+				value = legacyRaw(r.compileDecimalCastExpr(val.Float()))
 			}
 
 			expr, ok := compiled[column]
 			if !ok {
-				expr = databasedb.Raw(r.wrap.Column(column))
+				expr = legacyRaw(r.wrap.Column(column))
 			}
 
-			compiled[column] = databasedb.Raw("json_modify(?,?,?)", expr, path, value)
+			compiled[column] = legacyRaw("json_modify(?,?,?)", expr, path, value)
 
 			continue
 		}
@@ -397,10 +398,6 @@ func (r *Grammar) CompileLockForUpdate(builder sq.SelectBuilder, conditions *dri
 	return builder
 }
 
-func (r *Grammar) CompileLockForUpdateForGorm() clause.Expression {
-	return With("ROWLOCK", "UPDLOCK", "HOLDLOCK")
-}
-
 func (r *Grammar) CompileOffset(builder sq.SelectBuilder, conditions *driver.Conditions) sq.SelectBuilder {
 	if conditions.Offset == nil && conditions.Limit != nil {
 		conditions.Offset = convert.Pointer[uint64](0)
@@ -443,10 +440,6 @@ func (r *Grammar) CompileInRandomOrder(builder sq.SelectBuilder, conditions *dri
 	return builder
 }
 
-func (r *Grammar) CompileRandomOrderForGorm() string {
-	return "NEWID()"
-}
-
 func (r *Grammar) CompileRename(blueprint driver.Blueprint, command *driver.Command) string {
 	return fmt.Sprintf("sp_rename %s, %s", r.wrap.Quote(r.wrap.Table(blueprint.GetTableName())), r.wrap.Table(command.To))
 }
@@ -470,10 +463,6 @@ func (r *Grammar) CompileSharedLock(builder sq.SelectBuilder, conditions *driver
 	}
 
 	return builder
-}
-
-func (r *Grammar) CompileSharedLockForGorm() clause.Expression {
-	return With("ROWLOCK", "HOLDLOCK")
 }
 
 func (r *Grammar) CompileTables(_ string) string {
@@ -732,3 +721,18 @@ func parseSchemaAndTable(reference, defaultSchema string) (string, string, error
 
 	return schema, table, nil
 }
+
+func legacyRaw(value string, bindings ...any) core.Expression {
+	grammar := grammars.NewBaseGrammar("")
+	dialect := NewDialect()
+	grammar.SetEscaper(func(value any, binary bool) string {
+		if core.IsExpression(value) {
+			return core.ExpressionValue(value)
+		}
+		result, _ := dialect.Escape(value, binary)
+		return result
+	})
+	return core.Raw(grammar.SubstituteBindingsIntoRawSQL(value, bindings))
+}
+
+func (r *Grammar) SetVersionResolver(resolve func() (string, error)) { r.versionResolver = resolve }

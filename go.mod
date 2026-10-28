@@ -1,4 +1,4 @@
-module github.com/goravel/sqlserver
+module github.com/gradii/sqlserver
 
 go 1.25.0
 
@@ -6,11 +6,9 @@ toolchain go1.27.3
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/goravel/framework v1.18.0
+	github.com/gradii/framework v1.18.0
 	github.com/spf13/cast v1.10.0
 	github.com/stretchr/testify v1.12.1
-	gorm.io/driver/sqlserver v1.6.4
-	gorm.io/gorm v1.31.2
 )
 
 require (
@@ -44,8 +42,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gookit/color v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0 // indirect
-	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
@@ -54,7 +50,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.24 // indirect
-	github.com/microsoft/go-mssqldb v1.9.6 // indirect
+	github.com/microsoft/go-mssqldb v1.9.6
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
@@ -99,5 +95,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260803160001-6ac0973c030d // indirect
 	google.golang.org/grpc v1.83.2 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
-	gorm.io/plugin/dbresolver v1.6.2 // indirect
 )

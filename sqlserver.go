@@ -1,109 +1,58 @@
 package sqlserver
 
 import (
-	"fmt"
-
-	"github.com/goravel/framework/contracts/config"
-	"github.com/goravel/framework/contracts/database"
-	"github.com/goravel/framework/contracts/database/driver"
-	"github.com/goravel/framework/contracts/log"
-	"github.com/goravel/framework/contracts/process"
-	"github.com/goravel/framework/contracts/testing/docker"
-	"github.com/goravel/framework/errors"
-	"gorm.io/driver/sqlserver"
-	"gorm.io/gorm"
-
-	"github.com/goravel/sqlserver/contracts"
+	"github.com/gradii/framework/contracts/config"
+	"github.com/gradii/framework/contracts/database"
+	"github.com/gradii/framework/contracts/database/driver"
+	"github.com/gradii/framework/contracts/log"
+	"github.com/gradii/framework/contracts/process"
+	"github.com/gradii/framework/contracts/testing/docker"
+	"github.com/gradii/sqlserver/contracts"
+	drivererrors "github.com/gradii/sqlserver/errors"
+	"sync"
 )
 
-var _ driver.Driver = &Sqlserver{}
+var _ driver.Driver = (*Sqlserver)(nil)
+var _ driver.DriverWithDialect = (*Sqlserver)(nil)
 
 type Sqlserver struct {
 	config  contracts.ConfigBuilder
-	log     log.Log
-	process process.Process
+	mu      sync.RWMutex
+	version func() (string, error)
 }
 
-func NewSqlserver(config config.Config, log log.Log, process process.Process, connection string) *Sqlserver {
-	return &Sqlserver{
-		config:  NewConfig(config, connection),
-		log:     log,
-		process: process,
-	}
+func NewSqlserver(configuration config.Config, _ log.Log, _ process.Process, connection string) *Sqlserver {
+	return &Sqlserver{config: NewConfig(configuration, connection)}
 }
-
 func (r *Sqlserver) Docker() (docker.DatabaseDriver, error) {
-	if r.process == nil {
-		return nil, fmt.Errorf("process facade not set")
-	}
-
-	writers := r.config.Writers()
-	if len(writers) == 0 {
-		return nil, errors.DatabaseConfigNotFound
-	}
-
-	return NewDocker(r.config, r.process, writers[0].Database, writers[0].Username, writers[0].Password), nil
+	return nil, drivererrors.DockerNotSupported
 }
-
+func (r *Sqlserver) Dialect() driver.Dialect { return NewDialect() }
+func (r *Sqlserver) SetServerVersion(resolve func() (string, error)) {
+	r.mu.Lock()
+	r.version = resolve
+	r.mu.Unlock()
+}
 func (r *Sqlserver) Grammar() driver.Grammar {
-	return NewGrammar(r.config.Writers()[0].Prefix)
+	prefix := ""
+	if writers := r.config.Writers(); len(writers) > 0 {
+		prefix = writers[0].Prefix
+	}
+	grammar := NewGrammar(prefix)
+	r.mu.RLock()
+	resolver := r.version
+	r.mu.RUnlock()
+	grammar.SetVersionResolver(resolver)
+	return grammar
 }
-
 func (r *Sqlserver) Pool() database.Pool {
-	return database.Pool{
-		Readers: r.fullConfigsToConfigs(r.config.Readers()),
-		Writers: r.fullConfigsToConfigs(r.config.Writers()),
-	}
+	return database.Pool{Readers: r.fullConfigsToConfigs(r.config.Readers()), Writers: r.fullConfigsToConfigs(r.config.Writers())}
 }
-
-func (r *Sqlserver) Processor() driver.Processor {
-	return NewProcessor()
-}
-
-func (r *Sqlserver) fullConfigsToConfigs(fullConfigs []contracts.FullConfig) []database.Config {
-	configs := make([]database.Config, len(fullConfigs))
-	for i, fullConfig := range fullConfigs {
-		configs[i] = database.Config{
-			Charset:      fullConfig.Charset,
-			Connection:   fullConfig.Connection,
-			Dsn:          fullConfig.Dsn,
-			Database:     fullConfig.Database,
-			Dialector:    fullConfigToDialector(fullConfig),
-			Driver:       Name,
-			Host:         fullConfig.Host,
-			NameReplacer: fullConfig.NameReplacer,
-			NoLowerCase:  fullConfig.NoLowerCase,
-			Password:     fullConfig.Password,
-			Port:         fullConfig.Port,
-			Prefix:       fullConfig.Prefix,
-			Singular:     fullConfig.Singular,
-			Username:     fullConfig.Username,
-			Timezone:     fullConfig.Timezone,
-		}
+func (r *Sqlserver) Processor() driver.Processor { return NewProcessor() }
+func (r *Sqlserver) fullConfigsToConfigs(values []contracts.FullConfig) []database.Config {
+	configs := make([]database.Config, len(values))
+	for i, c := range values {
+		configs[i] = database.Config{Charset: c.Charset, Connection: c.Connection, Dsn: c.Dsn, Database: c.Database, Driver: Name, Host: c.Host, Password: c.Password, Port: c.Port, Prefix: c.Prefix, Username: c.Username, Timezone: c.Timezone}
 	}
-
 	return configs
-}
-
-func dsn(fullConfig contracts.FullConfig) string {
-	if fullConfig.Dsn != "" {
-		return fullConfig.Dsn
-	}
-	if fullConfig.Host == "" {
-		return ""
-	}
-
-	return fmt.Sprintf("sqlserver://%s:%s@%s:%d?database=%s&charset=%s&timezone=%s&MultipleActiveResultSets=true",
-		fullConfig.Username, fullConfig.Password, fullConfig.Host, fullConfig.Port, fullConfig.Database, fullConfig.Charset, fullConfig.Timezone)
-}
-
-func fullConfigToDialector(fullConfig contracts.FullConfig) gorm.Dialector {
-	dsn := dsn(fullConfig)
-	if dsn == "" {
-		return nil
-	}
-
-	return sqlserver.New(sqlserver.Config{
-		DSN: dsn,
-	})
 }

@@ -1,13 +1,13 @@
 package sqlserver
 
 import (
-	"github.com/goravel/framework/contracts/binding"
-	"github.com/goravel/framework/contracts/foundation"
-	"github.com/goravel/framework/errors"
+	"github.com/gradii/framework/contracts/binding"
+	"github.com/gradii/framework/contracts/foundation"
+	"github.com/gradii/framework/errors"
 )
 
 const (
-	Binding = "goravel.sqlserver"
+	Binding = "gradii.sqlserver"
 	Name    = "SQL Server"
 )
 

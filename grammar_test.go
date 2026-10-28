@@ -3,13 +3,13 @@ package sqlserver
 import (
 	"testing"
 
-	"github.com/goravel/framework/contracts/database/driver"
-	databasedb "github.com/goravel/framework/database/db"
-	"github.com/goravel/framework/database/schema"
-	"github.com/goravel/framework/errors"
-	"github.com/goravel/framework/foundation/json"
-	mocksdriver "github.com/goravel/framework/mocks/database/driver"
-	mocksfoundation "github.com/goravel/framework/mocks/foundation"
+	"github.com/gradii/framework/contracts/database/driver"
+
+	"github.com/gradii/framework/database/schema"
+	"github.com/gradii/framework/errors"
+	"github.com/gradii/framework/foundation/json"
+	mocksdriver "github.com/gradii/framework/mocks/database/driver"
+	mocksfoundation "github.com/gradii/framework/mocks/foundation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -321,10 +321,10 @@ func (s *GrammarSuite) TestCompileJsonColumnsUpdate() {
 			values: map[string]any{"data->bool": true},
 			expectedValues: []map[string]any{
 				{
-					"data": databasedb.Raw(
+					"data": legacyRaw(
 						"json_modify(?,?,?)",
-						databasedb.Raw(`"data"`),
-						`$."bool"`, databasedb.Raw("cast(1 as bit)"),
+						legacyRaw(`"data"`),
+						`$."bool"`, legacyRaw("cast(1 as bit)"),
 					),
 				},
 			},
@@ -334,10 +334,10 @@ func (s *GrammarSuite) TestCompileJsonColumnsUpdate() {
 			values: map[string]any{"data->float": 456.789},
 			expectedValues: []map[string]any{
 				{
-					"data": databasedb.Raw(
+					"data": legacyRaw(
 						"json_modify(?,?,?)",
-						databasedb.Raw(`"data"`),
-						`$."float"`, databasedb.Raw("cast(? as decimal(6,3))", "456.789"),
+						legacyRaw(`"data"`),
+						`$."float"`, legacyRaw("cast(? as decimal(6,3))", "456.789"),
 					),
 				},
 			},
@@ -346,14 +346,14 @@ func (s *GrammarSuite) TestCompileJsonColumnsUpdate() {
 			name:   "update single json column",
 			values: map[string]any{"data->details": "details value"},
 			expectedValues: []map[string]any{
-				{"data": databasedb.Raw("json_modify(?,?,?)", databasedb.Raw(`"data"`), `$."details"`, "details value")},
+				{"data": legacyRaw("json_modify(?,?,?)", legacyRaw(`"data"`), `$."details"`, "details value")},
 			},
 		},
 		{
 			name:   "update single json column(with nested path)",
 			values: map[string]any{"data->details->subdetails[0]": "subdetails value"},
 			expectedValues: []map[string]any{
-				{"data": databasedb.Raw("json_modify(?,?,?)", databasedb.Raw(`"data"`), `$."details"."subdetails"[0]`, "subdetails value")},
+				{"data": legacyRaw("json_modify(?,?,?)", legacyRaw(`"data"`), `$."details"."subdetails"[0]`, "subdetails value")},
 			},
 		},
 		{
@@ -361,22 +361,22 @@ func (s *GrammarSuite) TestCompileJsonColumnsUpdate() {
 			values: map[string]any{"data->details": "details value", "data->info": "info value"},
 			expectedValues: []map[string]any{
 				{
-					"data": databasedb.Raw(
+					"data": legacyRaw(
 						"json_modify(?,?,?)",
-						databasedb.Raw(
+						legacyRaw(
 							"json_modify(?,?,?)",
-							databasedb.Raw(`"data"`),
+							legacyRaw(`"data"`),
 							`$."details"`, "details value",
 						),
 						`$."info"`, "info value",
 					),
 				},
 				{
-					"data": databasedb.Raw(
+					"data": legacyRaw(
 						"json_modify(?,?,?)",
-						databasedb.Raw(
+						legacyRaw(
 							"json_modify(?,?,?)",
-							databasedb.Raw(`"data"`),
+							legacyRaw(`"data"`),
 							`$."info"`, "info value",
 						),
 						`$."details"`, "details value",
