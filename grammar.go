@@ -14,7 +14,6 @@ import (
 	"github.com/gradii/framework/database/query/grammars"
 	"github.com/gradii/framework/database/schema"
 	"github.com/gradii/framework/errors"
-	"github.com/gradii/framework/support/convert"
 	"github.com/spf13/cast"
 )
 
@@ -401,7 +400,8 @@ func (r *Grammar) CompileLockForUpdate(builder sq.SelectBuilder, conditions *dri
 
 func (r *Grammar) CompileOffset(builder sq.SelectBuilder, conditions *driver.Conditions) sq.SelectBuilder {
 	if conditions.Offset == nil && conditions.Limit != nil {
-		conditions.Offset = convert.Pointer[uint64](0)
+		offset := uint64(0)
+		conditions.Offset = &offset
 	}
 	if conditions.Offset != nil && conditions.Limit != nil {
 		builder = builder.Suffix("OFFSET ? ROWS", *conditions.Offset)

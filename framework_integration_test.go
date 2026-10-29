@@ -116,7 +116,7 @@ func TestFrameworkIntegration(t *testing.T) {
 		require.Equal(t, record.StableLabel, loaded.StableLabel)
 		tx, err := query.Clone().BeginTransaction()
 		require.NoError(t, err)
-		defer tx.Rollback()
+		defer func() { require.NoError(t, tx.Rollback()) }()
 		transient := integrationRecord{StableLabel: "rolled back", StableDocument: `{}`}
 		require.NoError(t, tx.Create(&transient))
 		require.Positive(t, transient.StableKey)
