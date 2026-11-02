@@ -58,7 +58,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.31 // indirect
-	github.com/microsoft/go-mssqldb v1.9.6
+	github.com/microsoft/go-mssqldb v1.11.2
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/pterm/pterm v0.12.84 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
