@@ -6,7 +6,7 @@ toolchain go1.27.3
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/gradii/framework v1.20.0-alpha.1
+	github.com/gradii/framework v1.20.0-alpha.3
 	github.com/spf13/cast v1.10.0
 	github.com/stretchr/testify v1.12.1
 )
@@ -96,6 +96,6 @@ require (
 	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260928230214-8a89bd6388cc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
-	google.golang.org/grpc v1.86.0-dev.0.20261016230555-3d85ab3cf6bf // indirect
+	google.golang.org/grpc v1.86.0-dev.0.20261023181330-80c1e76a540c // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
